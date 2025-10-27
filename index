@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portarage Oil - حاسبة أسعار الزيوت</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            box-sizing: border-box;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        .floating-oil {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .gold-gradient {
+            background: linear-gradient(135deg, #FFD700, #FFA500, #FFD700);
+            background-size: 200% 200%;
+            animation: shimmer 3s linear infinite;
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .oil-drop {
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #FFD700, #FFA500);
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            position: absolute;
+            animation: float 4s ease-in-out infinite;
+            cursor: grab;
+            user-select: none;
+            transition: all 0.3s ease;
+        }
+        
+        .oil-drop:hover {
+            transform: rotate(-45deg) scale(1.2);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        }
+        
+        .oil-drop.dragging {
+            cursor: grabbing;
+            z-index: 1000;
+            animation: none;
+            transform: rotate(-45deg) scale(1.3);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 1);
+        }
+        
+        .filter-icon {
+            font-size: 30px;
+            position: absolute;
+            animation: float 5s ease-in-out infinite;
+            cursor: grab;
+            user-select: none;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-icon:hover {
+            transform: scale(1.2);
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        }
+        
+        .filter-icon.dragging {
+            cursor: grabbing;
+            z-index: 1000;
+            animation: none;
+            transform: scale(1.4);
+            text-shadow: 0 0 30px rgba(255, 215, 0, 1);
+        }
+        
+        .bouncing {
+            animation: bounce 0.6s ease-out;
+        }
+        
+        @keyframes bounce {
+            0% { transform: scale(1.5); }
+            50% { transform: scale(0.8); }
+            100% { transform: scale(1); }
+        }
+        
+        .btn-gold {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+        
+        .btn-gold:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.5);
+        }
+        
+        .input-gold {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid rgba(255, 215, 0, 0.5);
+            color: #FFD700;
+            transition: all 0.3s ease;
+        }
+        
+        .input-gold:focus {
+            border-color: #FFD700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            outline: none;
+        }
+    </style>
+</head>
+<body class="h-full bg-black text-white overflow-x-hidden">
+    <!-- خلفية متحركة -->
+    <div class="fixed inset-0 z-0">
+        <!-- قطرات الزيت -->
+        <div class="oil-drop draggable-item" data-type="oil" style="top: 10%; left: 10%; animation-delay: 0s;"></div>
+        <div class="oil-drop draggable-item" data-type="oil" style="top: 20%; right: 15%; animation-delay: 1s;"></div>
+        <div class="oil-drop draggable-item" data-type="oil" style="top: 60%; left: 20%; animation-delay: 2s;"></div>
+        <div class="oil-drop draggable-item" data-type="oil" style="top: 80%; right: 25%; animation-delay: 3s;"></div>
+        <div class="oil-drop draggable-item" data-type="oil" style="top: 40%; right: 10%; animation-delay: 4s;"></div>
+        
+        <!-- فلاتر متحركة -->
+        <div class="filter-icon draggable-item" data-type="filter" style="top: 15%; right: 20%; animation-delay: 0.5s;">🛢️</div>
+        <div class="filter-icon draggable-item" data-type="filter" style="top: 35%; left: 15%; animation-delay: 1.5s;">🛢️</div>
+        <div class="filter-icon draggable-item" data-type="filter" style="top: 55%; right: 30%; animation-delay: 2.5s;">🛢️</div>
+        <div class="filter-icon draggable-item" data-type="filter" style="top: 75%; left: 25%; animation-delay: 3.5s;">🛢️</div>
+        <div class="filter-icon draggable-item" data-type="filter" style="top: 25%; left: 5%; animation-delay: 4.5s;">🛢️</div>
+        <div class="filter-icon draggable-item" data-type="filter" style="top: 65%; right: 5%; animation-delay: 5.5s;">🛢️</div>
+    </div>
+
+    <main class="relative z-10 min-h-full flex items-center justify-center p-4">
+        <div class="w-full max-w-4xl">
+            <!-- العنوان الرئيسي -->
+            <header class="text-center mb-8">
+                <img src="https://j.top4top.io/p_358488t9h1.png" alt="Portarage Oil Logo" 
+                     class="mx-auto max-w-md w-full h-auto rounded-lg shadow-lg"
+                     onerror="this.src=''; this.alt='Image failed to load'; this.style.display='none';">
+            </header>
+
+            <!-- المحتوى الرئيسي -->
+            <div class="glass-effect rounded-2xl p-8 mb-8">
+                <!-- الخطوة 0: رفع الملف (إذا لم تكن البيانات محملة) -->
+                <div id="step0" class="step hidden">
+                    <h2 class="text-2xl font-bold mb-4 text-center text-yellow-400">
+                        رفع ملف البيانات
+                    </h2>
+                    <div class="text-center">
+                        <div class="glass-effect p-6 rounded-lg mb-6 max-w-md mx-auto">
+                            <p class="text-gray-300 mb-4">لم يتم العثور على البيانات أونلاين</p>
+                            <p class="text-gray-400 mb-4 text-sm">يرجى رفع ملف Excel يحتوي على بيانات المخزون</p>
+                            <input type="file" id="excelFileInput" accept=".xlsx,.xls" 
+                                   class="hidden" onchange="handleFileUpload(event)">
+                            <button onclick="document.getElementById('excelFileInput').click()" 
+                                    class="btn-gold text-black font-bold px-6 py-3 rounded-lg text-lg mb-4">
+                                📁 اختيار ملف Excel
+                            </button>
+                            <div id="fileStatus" class="text-sm text-gray-400"></div>
+                        </div>
+                        <button onclick="useOfflineData()" 
+                                class="bg-gray-600 hover:bg-gray-700 text-white font-bold px-6 py-3 rounded-lg text-lg">
+                            استخدام البيانات التجريبية
+                        </button>
+                    </div>
+                </div>
+
+                <!-- الخطوة 1: كمية الزيت -->
+                <div id="step1" class="step">
+
+
+                    <h2 class="text-2xl font-bold mb-4 text-center text-yellow-400">
+                        كم لتر تحتاج؟
+                    </h2>
+                    <div class="text-center">
+                        <input type="number" id="litersInput" min="1" max="50" 
+                               placeholder="أدخل عدد اللترات" 
+                               class="input-gold text-center text-2xl p-4 rounded-lg w-64 mb-6">
+                        <p class="text-gray-400 mb-6 text-lg">أدخل الكمية المطلوبة</p>
+                        <button id="nextBtn" onclick="goToStep2()" 
+                                class="btn-gold text-black font-bold px-8 py-4 rounded-lg text-lg opacity-50 cursor-not-allowed" 
+                                disabled>
+                            التالي
+                        </button>
+                    </div>
+                </div>
+
+
+
+                <!-- الخطوة 2: اختيار درجة اللزوجة -->
+                <div id="step2" class="step hidden">
+                    <div class="mb-6">
+                        <button onclick="showStep('step1')" 
+                                class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-colors text-lg">
+                            ← رجوع
+                        </button>
+                    </div>
+                    <h2 class="text-2xl font-bold mb-4 text-center text-yellow-400">
+                        اختر درجة اللزوجة المطلوبة
+                    </h2>
+                    <div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" id="viscosityOptions">
+                        <!-- سيتم ملؤها بالبيانات -->
+                    </div>
+                </div>
+
+                <!-- الخطوة 3: اختيار الزيت -->
+                <div id="step3" class="step hidden">
+                    <div class="mb-6">
+                        <button onclick="showStep('step2')" 
+                                class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-colors text-lg">
+                            ← رجوع
+                        </button>
+                    </div>
+                    <h2 class="text-2xl font-bold mb-4 text-center text-yellow-400">
+                        اختر ماركة الزيت
+                    </h2>
+                    <div class="mb-4">
+                        <input type="text" id="oilSearch" placeholder="ابحث عن الماركة..." 
+                               class="input-gold w-full p-4 rounded-lg text-lg">
+                    </div>
+                    <div id="oilOptions" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        <!-- سيتم ملؤها بالبيانات -->
+                    </div>
+                </div>
+
+                <!-- الخطوة 4: نوع السيارة -->
+                <div id="step4" class="step hidden">
+                    <div class="mb-6">
+                        <button onclick="showStep('step3')" 
+                                class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-colors text-lg">
+                            ← رجوع
+                        </button>
+                    </div>
+                    <h2 class="text-2xl font-bold mb-4 text-center text-yellow-400">
+                        اختر نوع السيارة للفلتر
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button onclick="selectCarType('german', 12)" 
+                                class="btn-gold text-black font-bold p-6 rounded-lg text-lg">
+                            ألمانية - 12 د.ك
+                        </button>
+                        <button onclick="selectCarType('other', 8)" 
+                                class="btn-gold text-black font-bold p-6 rounded-lg text-lg">
+                            أمريكية / يابانية / كورية - 8 د.ك
+                        </button>
+                        <button onclick="showCustomFilter()" 
+                                class="btn-gold text-black font-bold p-6 rounded-lg text-lg">
+                            أخرى
+                        </button>
+                    </div>
+                    
+                    <!-- خيار الفلتر المخصص -->
+                    <div id="customFilterSection" class="hidden mt-6 text-center">
+                        <h3 class="text-xl font-bold mb-3 text-yellow-400">أدخل سعر الفلتر</h3>
+                        <div class="flex justify-center items-center gap-3">
+                            <input type="number" id="customFilterPrice" min="0" step="0.1" 
+                                   placeholder="السعر" 
+                                   class="input-gold text-center text-lg p-3 rounded-lg w-32"
+                                   onkeypress="handleCustomFilterEnter(event)">
+                            <span class="text-lg text-gray-300">د.ك</span>
+                        </div>
+                        <p class="text-gray-400 mt-3 text-sm">اضغط Enter للمتابعة</p>
+                    </div>
+                </div>
+
+                <!-- النتيجة النهائية -->
+                <div id="finalResult" class="step hidden">
+                    <div class="mb-6">
+                        <button onclick="goBackToOilSelection()" 
+                                class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-colors text-lg">
+                            ← رجوع لتغيير الزيت
+                        </button>
+                    </div>
+                    <h2 class="text-2xl font-bold mb-4 text-center text-yellow-400">
+                        الفاتورة النهائية
+                    </h2>
+                    <div class="glass-effect rounded-lg p-6 mb-6">
+                        <div id="invoiceDetails" class="space-y-4 text-lg">
+                            <!-- تفاصيل الفاتورة -->
+                        </div>
+                    </div>
+                    <div class="text-center space-y-4">
+                        <button onclick="copyMessage()" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-4 rounded-lg text-lg transition-colors">
+                            نسخ
+                        </button>
+
+                        <button onclick="resetCalculation()" 
+                                class="btn-gold text-black font-bold px-8 py-4 rounded-lg text-lg">
+                            حساب جديد
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+
+
+    <script>
+        let oilData = [];
+        let selectedViscosity = '';
+        let selectedOil = null;
+        let liters = 0;
+        let filterPrice = 0;
+        let servicePrice = 15;
+        let lastFilterType = ''; // حفظ آخر نوع فلتر
+        
+        // متغيرات السحب التفاعلي
+        let isDragging = false;
+        let currentDragElement = null;
+        let dragOffset = { x: 0, y: 0 };
+
+        // ترجمة أسماء الماركات
+        function translateBrand(brand) {
+            switch(brand.toUpperCase()) {
+                case "CEPSA GENUINE": return "سيسبا اسباني 🇪🇸";
+                case "AC DELCO": return "اسي ديلكو امريكي 🇺🇸";
+                case "MOPAR": return "موبار امريكي 🇺🇸";
+                case "GAZPROMNEFT": return "غازبروم نفط روسي 🇷🇺";
+                case "MOBIL ONE": return "موبيل ون اوربي 🇪🇺";
+                case "SHELL HELIX ULTRA": return "شل هيليكس ألترا عماني 🇴🇲";
+                case "RAVENOL": return "ريفنول الماني 🇩🇪";
+                case "CASTROL": return "كاسترول بريطاني 🇬🇧";
+                case "WAGNER": return "واجنر الماني 🇩🇪";
+                case "DUCKHAMS": return "داكهام بريطاني 🇬🇧";
+                case "BIZOL": return "بيزول الماني 🇩🇪";
+                case "VICTOR": return "فيكتور";
+                case "LIQUI MOLY": return "ليكي مولي الماني 🇩🇪";
+                case "MOTORCRAFT": return "موتركرافت امريكي 🇺🇸";
+                case "G-ENERGY": return "جي-إنرجي إيطالي 🇮🇹";
+                case "TOTAL": return "توتال فرنسي 🇫🇷";
+                case "TOYOTA BLUE": return "تويوتا بلو ياباني 🇯🇵";
+                case "TOYOTA": return "تويوتا ياباني 🇯🇵";
+                case "LEXUS": return "لكزس ياباني 🇯🇵";
+                default: return brand;
+            }
+        }
+
+        // تحميل البيانات من Google Sheets أو ملف محلي
+        async function loadOilData() {
+            console.log('محاولة تحميل البيانات من Google Sheets...');
+            
+            try {
+                // رابط Google Sheets CSV
+                const sheetId = '1ax4pCBDTm6Vkq-MZjmmOY1dgwKCUQS5x1GeffkUYOzI';
+                const sheetName = 'Stock';
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${sheetName}`;
+                
+                const response = await fetch(csvUrl);
+                const csvText = await response.text();
+                
+                // تحويل CSV إلى مصفوفة
+                const rows = csvText.split('\n').map(row => {
+                    // تنظيف الصف وإزالة علامات الاقتباس
+                    return row.split(',').map(cell => cell.replace(/"/g, '').trim());
+                });
+                
+                // إزالة الصف الأول (العناوين)
+                const headers = rows[0];
+                const dataRows = rows.slice(1);
+                
+                console.log('العناوين:', headers);
+                
+                // تحويل البيانات إلى كائنات
+                oilData = dataRows
+                    .filter(row => row.length >= 6 && row[0]) // التأكد من وجود بيانات
+                    .map(row => ({
+                        brand: row[0] || '',           // Brand
+                        type: row[1] || '',            // Type (درجة اللزوجة)
+                        price: parseFloat(row[2]) || 0, // Price
+                        liters: parseInt(row[3]) || 0,  // Liters
+                        priceLiter: parseFloat(row[4]) || 0, // PriceLiter (لا نستخدمه)
+                        country: row[5] || '',         // Country
+                        contAvailable: parseInt(row[6]) || 0 // ContAvailable (الكمية المتوفرة)
+                    }))
+                    .filter(item => item.brand && item.type && item.price > 0 && item.contAvailable > 0); // فلترة البيانات الصحيحة والمتوفرة
+                
+                console.log('تم تحميل البيانات من Google Sheets:', oilData.length, 'عنصر');
+                console.log('عينة من البيانات:', oilData.slice(0, 3));
+                
+                if (oilData.length > 0) {
+                    return Promise.resolve();
+                } else {
+                    throw new Error('لا توجد بيانات صالحة');
+                }
+                
+            } catch (error) {
+                console.error('خطأ في تحميل البيانات من Google Sheets:', error);
+                
+                // عرض خيار رفع الملف
+                showStep('step0');
+                return Promise.reject('فشل تحميل البيانات أونلاين');
+            }
+        }
+
+        // معالجة رفع ملف Excel
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const fileStatus = document.getElementById('fileStatus');
+            fileStatus.textContent = 'جاري قراءة الملف...';
+            fileStatus.className = 'text-sm text-yellow-400';
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // البحث عن ورقة العمل "Stock" أو أول ورقة
+                    let sheetName = 'Stock';
+                    if (!workbook.Sheets[sheetName]) {
+                        sheetName = workbook.SheetNames[0];
+                    }
+                    
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    // تحويل البيانات
+                    const headers = jsonData[0];
+                    const dataRows = jsonData.slice(1);
+                    
+                    console.log('العناوين من الملف:', headers);
+                    
+                    oilData = dataRows
+                        .filter(row => row.length >= 6 && row[0]) // التأكد من وجود بيانات
+                        .map(row => ({
+                            brand: row[0] || '',           // Brand
+                            type: row[1] || '',            // Type (درجة اللزوجة)
+                            price: parseFloat(row[2]) || 0, // Price
+                            liters: parseInt(row[3]) || 0,  // Liters
+                            priceLiter: parseFloat(row[4]) || 0, // PriceLiter (لا نستخدمه)
+                            country: row[5] || '',         // Country
+                            contAvailable: parseInt(row[6]) || 0 // ContAvailable (الكمية المتوفرة)
+                        }))
+                        .filter(item => item.brand && item.type && item.price > 0 && item.contAvailable > 0);
+                    
+                    console.log('تم تحميل البيانات من الملف:', oilData.length, 'عنصر');
+                    
+                    if (oilData.length > 0) {
+                        fileStatus.textContent = `تم تحميل ${oilData.length} عنصر بنجاح ✓`;
+                        fileStatus.className = 'text-sm text-green-400';
+                        
+                        // الانتقال للخطوة الأولى بعد ثانيتين
+                        setTimeout(() => {
+                            showStep('step1');
+                            setupLitersInput();
+                        }, 2000);
+                    } else {
+                        fileStatus.textContent = 'لم يتم العثور على بيانات صالحة في الملف ✗';
+                        fileStatus.className = 'text-sm text-red-400';
+                    }
+                    
+                } catch (error) {
+                    console.error('خطأ في قراءة الملف:', error);
+                    fileStatus.textContent = 'خطأ في قراءة الملف ✗';
+                    fileStatus.className = 'text-sm text-red-400';
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        // استخدام البيانات التجريبية
+        function useOfflineData() {
+            oilData = [
+                {brand: "CEPSA GENUINE", type: "5W-30", price: 2, liters: 4, contAvailable: 10},
+                {brand: "AC DELCO", type: "5W-30", price: 2.75, liters: 4, contAvailable: 8},
+                {brand: "MOBIL ONE", type: "5W-30", price: 4, liters: 4, contAvailable: 5},
+                {brand: "SHELL HELIX ULTRA", type: "5W-30", price: 2.063, liters: 4, contAvailable: 12},
+                {brand: "CASTROL", type: "5W-30", price: 3.375, liters: 4, contAvailable: 6},
+                {brand: "RAVENOL", type: "5W-20", price: 3.75, liters: 4, contAvailable: 7},
+                {brand: "LIQUI MOLY", type: "5W-20", price: 3.16, liters: 4, contAvailable: 9},
+                {brand: "TOTAL", type: "20W-50", price: 1.75, liters: 4, contAvailable: 15},
+                {brand: "TOYOTA", type: "20W-50", price: 1.812, liters: 4, contAvailable: 11}
+            ];
+            
+            console.log('تم استخدام البيانات التجريبية:', oilData.length, 'عنصر');
+            showStep('step1');
+            setupLitersInput();
+        }
+
+        function setupLitersInput() {
+            const litersInput = document.getElementById('litersInput');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            if (litersInput && nextBtn) {
+                litersInput.oninput = function(e) {
+                    liters = parseInt(e.target.value) || 0;
+                    if (liters > 0) {
+                        // تفعيل الزر
+                        nextBtn.disabled = false;
+                        nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        nextBtn.classList.add('hover:scale-105');
+                    } else {
+                        // تعطيل الزر
+                        nextBtn.disabled = true;
+                        nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                        nextBtn.classList.remove('hover:scale-105');
+                    }
+                };
+                
+                // السماح بالانتقال عند الضغط على Enter
+                litersInput.onkeypress = function(e) {
+                    if (e.key === 'Enter' && liters > 0) {
+                        goToStep2();
+                    }
+                };
+            }
+        }
+        
+        function goToStep2() {
+            if (liters > 0) {
+                showStep('step2');
+                displayViscosityOptions();
+            }
+        }
+
+        function displayViscosityOptions() {
+            // فلترة درجات اللزوجة المتوفرة حسب الكمية المطلوبة
+            const availableViscosities = [...new Set(
+                oilData
+                    .filter(item => item.contAvailable >= liters) // فقط الزيوت المتوفرة بالكمية المطلوبة
+                    .map(item => item.type)
+            )];
+            
+            const container = document.getElementById('viscosityOptions');
+            
+            if (availableViscosities.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center text-red-400 text-lg">
+                        عذراً، لا توجد زيوت متوفرة بالكمية المطلوبة (${liters} لتر)
+                        <br>
+                        <button onclick="showStep('step1')" class="btn-gold text-black font-bold px-6 py-3 rounded-lg text-base mt-4">
+                            تغيير الكمية
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = availableViscosities.map(viscosity => `
+                <button onclick="selectViscosity('${viscosity}')" 
+                        class="btn-gold text-black font-bold p-3 rounded-lg text-lg hover:scale-105 transition-transform">
+                    ${viscosity}
+                </button>
+            `).join('');
+        }
+
+        function selectViscosity(viscosity) {
+            selectedViscosity = viscosity;
+            showStep('step3');
+            displayOilOptions();
+        }
+
+        function displayOilOptions() {
+            // فلترة الزيوت حسب درجة اللزوجة المحددة والكمية المتوفرة
+            const filteredOils = oilData.filter(item => 
+                item.type === selectedViscosity && 
+                item.contAvailable >= liters
+            );
+            
+            const container = document.getElementById('oilOptions');
+            
+            function renderOils(oils) {
+                if (oils.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-span-full text-center text-red-400 text-lg">
+                            عذراً، لا توجد زيوت متوفرة بدرجة اللزوجة ${selectedViscosity} والكمية ${liters} لتر
+                            <br>
+                            <button onclick="showStep('step2')" class="btn-gold text-black font-bold px-6 py-3 rounded-lg text-base mt-4">
+                                اختيار لزوجة أخرى
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // ترتيب الزيوت حسب السعر من الأرخص للأغلى
+                const sortedOils = oils.sort((a, b) => a.price - b.price);
+                
+                container.innerHTML = sortedOils.map(oil => `
+                    <div onclick="selectOil('${oil.brand}', ${oil.price})" 
+                         class="glass-effect p-3 rounded-lg cursor-pointer hover:bg-yellow-900 hover:bg-opacity-20 transition-all border-2 border-transparent hover:border-yellow-500">
+                        <h3 class="text-base font-bold text-yellow-400">${translateBrand(oil.brand)}</h3>
+                        <p class="text-gray-300 text-xs">اللزوجة: ${oil.type}</p>
+                        <p class="text-base font-bold text-green-400">${oil.price} د.ك / لتر</p>
+                        <p class="text-xs text-blue-400">متوفر: ${oil.contAvailable} لتر</p>
+                    </div>
+                `).join('');
+            }
+            
+            renderOils(filteredOils);
+            
+            // البحث
+            document.getElementById('oilSearch').oninput = function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                const filtered = filteredOils.filter(oil => 
+                    oil.brand.toLowerCase().includes(searchTerm) ||
+                    translateBrand(oil.brand).toLowerCase().includes(searchTerm)
+                );
+                renderOils(filtered);
+            };
+        }
+
+
+
+        function selectOil(brandName, price) {
+            selectedOil = {name: brandName, price: price};
+            // إذا كان الفلتر محدد مسبقاً، انتقل مباشرة للنتيجة
+            if (filterPrice > 0) {
+                showStep('finalResult');
+                displayFinalResult();
+            } else {
+                showStep('step4');
+            }
+        }
+
+        function goBackToOilSelection() {
+            showStep('step3');
+            displayOilOptions();
+        }
+
+        function selectCarType(type, price) {
+            filterPrice = price;
+            lastFilterType = type; // حفظ نوع الفلتر
+            showStep('finalResult');
+            displayFinalResult();
+        }
+
+        function displayFinalResult() {
+            const oilTotal = selectedOil.price * liters;
+            const grandTotal = oilTotal + filterPrice + servicePrice;
+            
+            document.getElementById('invoiceDetails').innerHTML = `
+                <div class="border-b border-yellow-600 pb-4">
+                    <h3 class="text-lg font-bold text-yellow-400 mb-3">تفاصيل الطلب:</h3>
+                    <p class="text-base"><span class="text-gray-400">ماركة الزيت:</span> ${translateBrand(selectedOil.name)}</p>
+                    <p class="text-base"><span class="text-gray-400">درجة اللزوجة:</span> ${selectedViscosity}</p>
+                    <p class="text-base"><span class="text-gray-400">الكمية:</span> ${liters} لتر</p>
+                </div>
+                <div class="border-b border-yellow-600 pb-4">
+                    <h3 class="text-lg font-bold text-yellow-400 mb-3">تفاصيل التكلفة:</h3>
+                    <div class="flex justify-between text-base"><span>الزيت (${liters} × ${selectedOil.price})</span><span>${oilTotal.toFixed(3)} د.ك</span></div>
+                    <div class="flex justify-between text-base"><span>الفلتر</span><span>${filterPrice} د.ك</span></div>
+                    <div class="flex justify-between text-base"><span>الخدمة الميكانيكية</span><span>${servicePrice} د.ك</span></div>
+                </div>
+                <div class="text-2xl font-bold text-center">
+                    <span class="text-yellow-400">المجموع الكلي: </span>
+                    <span class="text-green-400">${grandTotal.toFixed(3)} د.ك</span>
+                </div>
+            `;
+        }
+
+        function showStep(stepId) {
+            document.querySelectorAll('.step').forEach(step => step.classList.add('hidden'));
+            document.getElementById(stepId).classList.remove('hidden');
+        }
+
+        function copyMessage() {
+            
+            const oilTotal = selectedOil.price * liters;
+            const grandTotal = oilTotal + filterPrice + servicePrice;
+            
+            const message = `متوفر زيت ${translateBrand(selectedOil.name)} (${liters}) لتر ودرجة اللزوجة ${selectedViscosity} مع الفلتر من الوكيل المعتمد مع فحص مجاني لمستوى غاز المكيف وإعادة برمجة علامة الخدمة جدام البيت بقيمة ${grandTotal.toFixed(3)} دك`;
+            
+            // الحصول على الزر
+            const copyBtn = document.querySelector('button[onclick="copyMessage()"]');
+            const originalText = copyBtn.textContent;
+            
+            // محاولة النسخ باستخدام Clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(message).then(() => {
+                    // نجح النسخ
+                    copyBtn.textContent = 'تم النسخ ✓';
+                    copyBtn.classList.add('bg-green-600');
+                    copyBtn.classList.remove('bg-blue-600');
+                    
+                    setTimeout(() => {
+                        copyBtn.textContent = originalText;
+                        copyBtn.classList.remove('bg-green-600');
+                        copyBtn.classList.add('bg-blue-600');
+                    }, 2000);
+                }).catch(() => {
+                    // فشل النسخ - استخدام الطريقة البديلة
+                    fallbackCopy(message, copyBtn, originalText);
+                });
+            } else {
+                // استخدام الطريقة البديلة مباشرة
+                fallbackCopy(message, copyBtn, originalText);
+            }
+        }
+
+        // طريقة بديلة للنسخ
+        function fallbackCopy(text, button, originalText) {
+            try {
+                // إنشاء عنصر textarea مؤقت
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                // محاولة النسخ
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                if (successful) {
+                    button.textContent = 'تم النسخ ✓';
+                    button.classList.add('bg-green-600');
+                    button.classList.remove('bg-blue-600');
+                } else {
+                    button.textContent = 'فشل النسخ ✗';
+                    button.classList.add('bg-red-600');
+                    button.classList.remove('bg-blue-600');
+                }
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('bg-green-600', 'bg-red-600');
+                    button.classList.add('bg-blue-600');
+                }, 2000);
+                
+            } catch (err) {
+                console.error('فشل في النسخ:', err);
+                button.textContent = 'فشل النسخ ✗';
+                button.classList.add('bg-red-600');
+                button.classList.remove('bg-blue-600');
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('bg-red-600');
+                    button.classList.add('bg-blue-600');
+                }, 2000);
+            }
+        }
+
+        function showCustomFilter() {
+            document.getElementById('customFilterSection').classList.remove('hidden');
+        }
+        
+        function hideCustomFilter() {
+            document.getElementById('customFilterSection').classList.add('hidden');
+            document.getElementById('customFilterPrice').value = '';
+        }
+        
+        function handleCustomFilterEnter(event) {
+            if (event.key === 'Enter') {
+                confirmCustomFilter();
+            }
+        }
+        
+        function confirmCustomFilter() {
+            const customPrice = parseFloat(document.getElementById('customFilterPrice').value);
+            if (customPrice >= 0) {
+                filterPrice = customPrice;
+                lastFilterType = 'custom'; // حفظ نوع الفلتر
+                showStep('finalResult');
+                displayFinalResult();
+            } else {
+                // عرض رسالة خطأ مخصصة بدلاً من alert
+                const input = document.getElementById('customFilterPrice');
+                input.style.borderColor = '#ef4444';
+                input.placeholder = 'يرجى إدخال سعر صحيح';
+                setTimeout(() => {
+                    input.style.borderColor = 'rgba(255, 215, 0, 0.5)';
+                    input.placeholder = 'السعر';
+                }, 2000);
+            }
+        }
+
+        function resetCalculation() {
+            selectedViscosity = '';
+            selectedOil = null;
+            liters = 0;
+            filterPrice = 0;
+            // لا نعيد تعيين lastFilterType للاحتفاظ بآخر اختيار
+            document.getElementById('oilSearch').value = '';
+            document.getElementById('litersInput').value = '';
+            document.getElementById('customFilterPrice').value = '';
+            hideCustomFilter();
+            showStep('step1');
+            setupLitersInput();
+        }
+
+
+
+        // إعداد السحب والإفلات للإيموجيات
+        function setupDraggableElements() {
+            const draggableItems = document.querySelectorAll('.draggable-item');
+            
+            draggableItems.forEach((item, index) => {
+                // بداية السحب - الماوس فقط
+                item.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    startDrag(e, item);
+                });
+                
+                // منع السحب الافتراضي للمتصفح
+                item.addEventListener('dragstart', (e) => e.preventDefault());
+                
+                // النقر المزدوج للانتقال العشوائي
+                item.addEventListener('dblclick', (e) => {
+                    e.preventDefault();
+                    teleportElement(item);
+                });
+            });
+            
+            // تتبع حركة الماوس للسحب فقط
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    drag(e);
+                }
+            });
+            
+            document.addEventListener('mouseup', endDrag);
+            
+            // منع تحديد النص أثناء السحب
+            document.addEventListener('selectstart', (e) => {
+                if (isDragging) e.preventDefault();
+            });
+        }
+        
+        function startDrag(e, element) {
+            isDragging = true;
+            currentDragElement = element;
+            
+            // إضافة كلاس السحب
+            currentDragElement.classList.add('dragging');
+            currentDragElement.style.zIndex = '1000';
+            
+            // حساب الإزاحة بدقة
+            const rect = currentDragElement.getBoundingClientRect();
+            dragOffset.x = e.clientX - rect.left;
+            dragOffset.y = e.clientY - rect.top;
+            
+            // تغيير شكل المؤشر
+            document.body.style.cursor = 'grabbing';
+        }
+        
+        function drag(e) {
+            if (!isDragging || !currentDragElement) return;
+            
+            e.preventDefault();
+            
+            // حساب الموقع الجديد بدقة
+            let newX = e.clientX - dragOffset.x;
+            let newY = e.clientY - dragOffset.y;
+            
+            // تحديد حدود الشاشة
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            const elementWidth = currentDragElement.offsetWidth || 30;
+            const elementHeight = currentDragElement.offsetHeight || 30;
+            
+            // السماح بالحركة الحرة مع حدود بسيطة
+            newX = Math.max(-10, Math.min(newX, windowWidth - elementWidth + 10));
+            newY = Math.max(-10, Math.min(newY, windowHeight - elementHeight + 10));
+            
+            // تحديث الموقع فوراً
+            currentDragElement.style.left = newX + 'px';
+            currentDragElement.style.top = newY + 'px';
+            currentDragElement.currentX = newX;
+            currentDragElement.currentY = newY;
+            currentDragElement.style.right = 'auto';
+            currentDragElement.style.bottom = 'auto';
+        }
+        
+        function endDrag(e) {
+            if (!isDragging || !currentDragElement) return;
+            
+            isDragging = false;
+            
+            // إزالة كلاس السحب
+            currentDragElement.classList.remove('dragging');
+            currentDragElement.style.zIndex = '100';
+            
+            // إعادة شكل المؤشر
+            document.body.style.cursor = 'default';
+            
+            currentDragElement = null;
+        }
+        
+        // انتقال عشوائي للعنصر
+        function teleportElement(element) {
+            // تأثير انفجار
+            element.style.transform = 'scale(2)';
+            element.style.opacity = '0.3';
+            
+            setTimeout(() => {
+                // إعادة تموضع عشوائي
+                const margin = 50;
+                const randomX = margin + Math.random() * (window.innerWidth - margin * 2);
+                const randomY = margin + Math.random() * (window.innerHeight - margin * 2);
+                
+                element.style.left = randomX + 'px';
+                element.style.top = randomY + 'px';
+                element.style.right = 'auto';
+                element.style.bottom = 'auto';
+                
+                // إعادة الحجم والشفافية
+                element.style.transform = 'scale(1)';
+                element.style.opacity = '1';
+                
+                // تأثير ظهور
+                element.classList.add('bouncing');
+                setTimeout(() => {
+                    element.classList.remove('bouncing');
+                }, 600);
+            }, 200);
+        }
+
+        // إضافة تأثيرات تفاعلية للإيموجيات
+        function addInteractiveEffects() {
+            // لا توجد تأثيرات إضافية - الإيموجيات تبقى في مكانها
+        }
+
+        // تحميل البيانات عند بدء التطبيق
+        loadOilData().then(() => {
+            setupLitersInput();
+            setupDraggableElements();
+            addInteractiveEffects();
+        }).catch(() => {
+            // في حالة فشل التحميل، سيتم عرض خيار رفع الملف
+            setupDraggableElements();
+            addInteractiveEffects();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9953a99dd35f51c2',t:'MTc2MTU4MzUxMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
