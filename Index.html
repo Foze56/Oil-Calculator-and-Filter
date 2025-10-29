@@ -3,12 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portarage Oil - حاسبة أسعار الزيوت</title>
+    <title>Oil Portarage</title>
+    <link rel="icon" type="image/png" href="https://f.top4top.io/p_3589qm7sl0.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body {
             box-sizing: border-box;
+        }
+        
+        /* الألوان الثابتة */
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            transition: all 0.3s ease;
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .input-gold {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            color: #fbbf24;
+            transition: all 0.3s ease;
+        }
+        
+        .input-gold:focus {
+            border-color: #fbbf24;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            outline: none;
+        }
+        
+        .btn-gold {
+            background: linear-gradient(135deg, #fbbf24, #FFA500);
+            color: #000000;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+        
+        .btn-gold:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
         }
         
         @keyframes float {
@@ -29,12 +68,6 @@
             background: linear-gradient(135deg, #FFD700, #FFA500, #FFD700);
             background-size: 200% 200%;
             animation: shimmer 3s linear infinite;
-        }
-        
-        .glass-effect {
-            backdrop-filter: blur(10px);
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid rgba(255, 215, 0, 0.3);
         }
         
         .oil-drop {
@@ -115,33 +148,11 @@
             border-radius: 3px;
             font-weight: bold;
         }
-        
-        .btn-gold {
-            background: linear-gradient(135deg, #FFD700, #FFA500);
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
-        }
-        
-        .btn-gold:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.5);
-        }
-        
-        .input-gold {
-            background: rgba(0, 0, 0, 0.8);
-            border: 2px solid rgba(255, 215, 0, 0.5);
-            color: #FFD700;
-            transition: all 0.3s ease;
-        }
-        
-        .input-gold:focus {
-            border-color: #FFD700;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
-            outline: none;
-        }
     </style>
 </head>
-<body class="h-full bg-black text-white overflow-x-hidden">
+<body class="h-full overflow-x-hidden">
+
+
     <!-- خلفية متحركة -->
     <div class="fixed inset-0 z-0">
         <!-- قطرات الزيت -->
@@ -483,6 +494,8 @@
         let isDragging = false;
         let currentDragElement = null;
         let dragOffset = { x: 0, y: 0 };
+
+
 
         // ترجمة أسماء الماركات
         function translateBrand(brand) {
@@ -2158,5 +2171,5 @@
         // إيقاف التحديث التلقائي عند إغلاق الصفحة
         window.addEventListener('beforeunload', stopAutoUpdate);
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9964fa71b71e4e76',t:'MTc2MTc2NTA4Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99654d4527014e76',t:'MTc2MTc2ODQ3NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
